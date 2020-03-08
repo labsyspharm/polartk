@@ -1,7 +1,6 @@
 import numpy as np
 
-from scipy import ndimage as ndi
-from sklearn import gaussian_process
+from sklearn import neighbors
 
 def iter_cell(cellid_array):
     '''
@@ -63,32 +62,22 @@ def percentile_scale(
     new_image[new_image < 0] = 0
     return new_image
 
-def radial_fit(cellid_array, dist_array, feature, n_grid=100):
-    # make grids
-    num_cell = np.unique(cellid_array).shape[0]
-    if 0 in cellid_array:
-        num_cell -= 1 # background
-    dist_grid = np.linspace(dist_array.min(), dist_array.max(), n_grid)
-    output = np.zeros((num_cell, n_grid))
-    
-    # cell-specific
-    for i, ti in enumerate(iter_cell(cellid_array)):
-        ci, xi, yi = ti
-        r = dist_array[xi, yi].reshape((-1,1))
-        f = feature[xi, yi].flatten()
-        model = gaussian_process.GaussianProcessRegressor()
-        model.fit(r, f)
-        output[i, :] = model.predict(dist_grid)
-
-    return dist_grid, output
-    
-def dist_to_border(cellid_array):
-    mask = cellid_array > 0
-    return ndi.distance_transform_edt(mask)
-
-def dist_to_centroid(cellid_array):
-    d = np.zeros_like(cellid_array)
-    for ci, xi, yi in iter_cell(cellid_array):
-        xc, yc = np.median(xi), np.median(yi)
-        d[xi, yi] = np.sqrt((xi-xc)**2 + (yi-yc)**2)
-    return d
+def xy2rt(im, n_neighbors=5):
+    # construct r (radius) and t (angle) grid
+    x, y = np.meshgrid(range(im.shape[0]), range(im.shape[1]), indexing='xy')
+    xc, yc = np.median(x), np.median(y)
+    r = np.sqrt((x-xc)**2 + (y-yc)**2)
+    t = np.arctan2(x-xc, y-yc)
+    # approximate by KNN regression
+    rt = np.stack([r.flatten(), t.flatten()], axis=-1)
+    model = neighbors.KNeighborsRegressor(n_neighbors=n_neighbors)
+    model.fit(rt, im.flatten())
+    # evaluate on new grid
+    new_r, new_t = np.meshgrid(
+            np.linspace(r.min(), r.max(), im.shape[0]),
+            np.linspace(t.min(), t.max(), im.shape[1]),
+            indexing='xy')
+    new_rt = np.stack([new_r.flatten(), new_t.flatten()], axis=-1)
+    new_im = model.predict(new_rt)
+    new_im = new_im.reshape(im.shape)
+    return new_im
