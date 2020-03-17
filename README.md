@@ -1,2 +1,2 @@
-# cell_image_toolkit
-Handy tools for analyzing image of cells.
+# PolarTK: seeing through the cell’s “eyes”
+![](cover_figure.png)
