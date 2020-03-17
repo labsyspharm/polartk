@@ -97,10 +97,10 @@ def xy2rt(
     if label is None:
         r = np.sqrt((x-xc)**2 + (y-yc)**2)
     else:
-        r_nuclei = morphology.distance_transform_edt(label_xy_pad == 2)
+        r_nuclei = morphology.distance_transform_edt(label_pad == 2)
         r_nuclei = r_nuclei.max() - r_nuclei
-        r_cell = morphology.distance_transform_edt(label_xy_pad < 2)
-        r_background = morphology.distance_transform_edt(label_xy_pad == 0)
+        r_cell = morphology.distance_transform_edt(label_pad < 2)
+        r_background = morphology.distance_transform_edt(label_pad == 0)
         r = r_nuclei + r_cell + r_background
         
     # angle (radian)

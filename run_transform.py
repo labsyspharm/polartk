@@ -108,7 +108,8 @@ if __name__ == '__main__':
         return all(checklist)
 
     # define channel list to process
-    num_channel = len(tif.series[0].pages) -2 # last two channels are masks for this ome.tif
+    with tifffile.TiffFile(image_filepath) as tif:
+        num_channel = len(tif.series[0].pages) -2 # last two channels are masks for this ome.tif
     channel_list = list(range(num_channel))
     dna_list = channel_list[0::4]
     background_list = [1, 2, 3]
@@ -124,7 +125,7 @@ if __name__ == '__main__':
             csvwriter.writerow(output_header)
         
             for array in wp.imap_unordered(func=process_job, iterable=generate_job(
-                image_filepath=image_filepath, channelid=channelid nuclei_mask_filepath=nuclei_mask_filepath,
+                image_filepath=image_filepath, channelid=channelid, nuclei_mask_filepath=nuclei_mask_filepath,
                 cell_mask_filepath=cell_mask_filepath, tile_shape=tile_shape,
                 cell_selection_criteria=cell_criteria, verbose=True)):
             
