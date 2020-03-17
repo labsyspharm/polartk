@@ -67,10 +67,10 @@ def generate_job(image_filepath, channelid, nuclei_mask_filepath, cell_mask_file
             # yield job
             job_args = dict(image=intensity, centroid=tcc, label=label_xy)
 
-            yield cellid, channelid, job_args
+            yield cellid, job_args
 
 def process_job(job):
-    cellid, channelid, job_args = job
+    cellid, job_args = job
     
     r_grid, t_grid, image_rt, label_rt = polartk.xy2rt(**job_args)
 
@@ -82,7 +82,7 @@ def process_job(job):
     array[:, 2] = t_grid.flatten()
     array[:, 3] = label_rt.flatten()
     array[:, 4] = image_rt.flatten()
-    return channelid, array
+    return array
 
 if __name__ == '__main__':
     # params
@@ -125,7 +125,8 @@ if __name__ == '__main__':
             csvwriter.writerow(output_header)
         
             for array in wp.imap_unordered(func=process_job, iterable=generate_job(
-                image_filepath=image_filepath, channelid=channelid, nuclei_mask_filepath=nuclei_mask_filepath,
+                image_filepath=image_filepath, channelid=channelid,
+                nuclei_mask_filepath=nuclei_mask_filepath,
                 cell_mask_filepath=cell_mask_filepath, tile_shape=tile_shape,
                 cell_selection_criteria=cell_criteria, verbose=True)):
             
