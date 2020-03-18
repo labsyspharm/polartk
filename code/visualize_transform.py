@@ -33,9 +33,9 @@ def cell_criteria(region):
 
 if __name__ == '__main__':
     # paths
-    nuclei_mask_filepath = '../data/seg_masks/ZM131_10B_286_roi_A_nucleiRingMask.tif'
-    cell_mask_filepath = '../data/seg_masks/ZM131_10B_286_roi_A_cellRingMask.tif'
-    image_filepath = '../data/images/ZM131_10B_286_roi_A_masked.ome.tif'
+    nuclei_mask_filepath = '~/polar_data/data/nuclei_mask.tif'
+    cell_mask_filepath = '~/polar_data/data/cell_mask.tif'
+    image_filepath = '~/polar_data/data/image.ome.tif'
     
     # params
     tile_shape = (15, 15)

@@ -87,11 +87,11 @@ def process_job(job):
 if __name__ == '__main__':
     # params
     tile_shape = (15, 15)
-    image_filepath = '../data/images/ZM131_10B_286_roi_A_masked.ome.tif'
-    nuclei_mask_filepath = '../data/seg_masks/ZM131_10B_286_roi_A_nucleiRingMask.tif'
-    cell_mask_filepath = '../data/seg_masks/ZM131_10B_286_roi_A_cellRingMask.tif'
+    image_filepath = '~/polar_data/data/image.ome.tif'
+    nuclei_mask_filepath = '~/polar_data/data/nuclei_mask.tif'
+    cell_mask_filepath = '~/polar_data/data/cell_mask.tif'
     output_header = ['cellid', 'r', 'theta', 'label', 'intensity']
-    output_folderpath = '../derived_data/transformed_result'
+    output_folderpath = '~/polar_data/transformed_result'
     
     # prepare output folder
     if os.path.isdir(output_folderpath):
@@ -111,13 +111,13 @@ if __name__ == '__main__':
     with tifffile.TiffFile(image_filepath) as tif:
         num_channel = len(tif.series[0].pages) -2 # last two channels are masks for this ome.tif
     channel_list = list(range(num_channel))
-    dna_list = channel_list[0::4]
+    dna_list = channel_list[4::4] # keep DNA1
     background_list = [1, 2, 3]
     channel_list = list(set(channel_list).difference(set(dna_list + background_list)))
     
     # parallel processing
     wp = mp.Pool(os.cpu_count()) # worker pool
-    
+   
     for channelid in channel_list:
         output_filepath = os.path.join(output_folderpath, 'channel_{}.csv'.format(channelid))
         with open(output_filepath, 'w', newline='') as csvfile:
