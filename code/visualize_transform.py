@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -33,9 +35,9 @@ def cell_criteria(region):
 
 if __name__ == '__main__':
     # paths
-    nuclei_mask_filepath = '~/polar_data/data/nuclei_mask.tif'
-    cell_mask_filepath = '~/polar_data/data/cell_mask.tif'
-    image_filepath = '~/polar_data/data/image.ome.tif'
+    nuclei_mask_filepath = os.path.expanduser('~/polar_data/data/nuclei_mask.tif')
+    cell_mask_filepath = os.path.expanduser('~/polar_data/data/cell_mask.tif')
+    image_filepath = os.path.expanduser('~/polar_data/data/image.ome.tif')
     
     # params
     tile_shape = (15, 15)

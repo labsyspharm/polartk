@@ -7,8 +7,8 @@ import pandas as pd
 
 if __name__ == '__main__':
     # paths
-    data_filepattern = '~/polar_data/transformed_result/channel_*.csv'
-    output_filepath = '~/polar_data/transformed_result.csv'
+    data_filepattern = os.path.expanduser('~/polar_data/transformed_result/channel_*.csv')
+    output_filepath = os.path.expanduser('~/polar_data/transformed_result.csv')
     
     # params
     label_dict = {0: 'environment', 1: 'cytoplasm', 2: 'nucleus'}
