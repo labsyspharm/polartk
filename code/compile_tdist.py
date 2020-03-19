@@ -4,11 +4,12 @@ import glob
 
 import numpy as np
 import pandas as pd
+import tqdm
 
 if __name__ == '__main__':
     # paths
     data_filepattern = os.path.expanduser('~/polar_data/transformed_result/channel_*.csv')
-    output_filepath = os.path.expanduser('~/polar_data/transformed_result.csv')
+    output_filepath = os.path.expanduser('~/polar_data/angular_distribution.csv')
     
     # params
     label_dict = {0: 'environment', 1: 'cytoplasm', 2: 'nucleus'}
@@ -16,7 +17,7 @@ if __name__ == '__main__':
 
     # process each file
     df_list = []
-    for data_filepath in glob.glob(data_filepattern):
+    for data_filepath in tqdm.tqdm(glob.glob(data_filepattern)):
         df = pd.read_csv(data_filepath)
         df = df.groupby(by=['cellid', 'theta', 'label'])['intensity'].sum()
         df = df.unstack(level=1) # pivot only theta, leaving cellid and label in the index
