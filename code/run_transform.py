@@ -6,7 +6,7 @@ import multiprocessing as mp
 import numpy as np
 import tqdm
 
-from skimage import io, measure, exposure
+from skimage import io, measure, exposure, morphology
 from skimage.external import tifffile
 
 import polartk
@@ -20,17 +20,17 @@ def prep_intensity(arr):
             in_range=tuple(np.percentile(arr, (1, 99))))
     return arr
 
-def generate_job(image_filepath, channelid, nuclei_mask_filepath, cell_mask_filepath, tile_shape,
-                 cell_selection_criteria=None, verbose=False):
+def generate_job(image_filepath, channelid, nuclei_mask_filepath, cell_mask_filepath,
+        tile_shape, cell_selection_criteria=None, sensitivity_fn=None, verbose=False):
     # load data
     cell_mask = io.imread(cell_mask_filepath)
     nuclei_mask = io.imread(nuclei_mask_filepath)
 
     # select cell centroids based on criteria
     if cell_selection_criteria is None:
-        cc_dict = {region.label: region.centroid for region in measure.regionprops(nuclei_mask)}
+        region_dict = {region.label: region for region in measure.regionprops(nuclei_mask)}
     else:
-        cc_dict = {region.label: region.centroid for region in measure.regionprops(nuclei_mask)\
+        region_dict = {region.label: region for region in measure.regionprops(nuclei_mask)\
                   if cell_selection_criteria(region)}
 
     # open image
@@ -38,14 +38,18 @@ def generate_job(image_filepath, channelid, nuclei_mask_filepath, cell_mask_file
         channel_image = tif.series[0].pages[channelid].asarray()
         channel_image = prep_intensity(channel_image)
 
-        for cellid in tqdm.tqdm(cc_dict, desc='channel {}'.format(channelid), disable=not verbose):
+        for cellid in tqdm.tqdm(region_dict, desc='channel {}'.format(channelid),
+                disable=not verbose):
+            # get cell coordinate from current nuclei mask
+            region = region_dict[cellid]
+            bxl, byl, bxu, byu = region.bbox
+            bx, by = np.meshgrid(range(bxl, bxu), range(byl, byu), indexing='ij')
+            bxc, byc = np.mean(bx[region.image]), np.mean(by[region.image])
+
             # calculate tile coordinates, based on centroid and tile shpae
-            cc = cc_dict[cellid] # cell centroid
-            txl = int(np.round(cc[0]-tile_shape[0]/2)) # tile x lower bound
-            tyl = int(np.round(cc[1]-tile_shape[1]/2)) # tile y lower bound
+            txl = int(np.round(bxc-tile_shape[0]/2)) # tile x lower bound
+            tyl = int(np.round(byc-tile_shape[1]/2)) # tile y lower bound
             txu, tyu = txl+tile_shape[0], tyl+tile_shape[1] # tile x/y upper bound
-            tcc = (cc[0]-txl, cc[1]-tyl) # tile cell centroid
-            intensity = channel_image[txl:txu, tyl:tyu]
 
             # skip cells too close to borders, given tile shape
             valid_list = [
@@ -57,15 +61,24 @@ def generate_job(image_filepath, channelid, nuclei_mask_filepath, cell_mask_file
             if not all(valid_list):
                 continue
 
-            # construct label based on segmentation masks
-            cm = cell_mask[txl:txu, tyl:tyu] == cellid
+            # centroid and image
+            tcc = (bxc-txl, byc-tyl) # tile cell centroid
+            image_xy = channel_image[txl:txu, tyl:tyu]
+
+            # adjust masks to assess sensitivity
+            # ex. erosion and dilation
             nm = nuclei_mask[txl:txu, tyl:tyu] == cellid
+            cm = cell_mask[txl:txu, tyl:tyu] == cellid
+            if sensitivity_fn is not None:
+                nm, cm = sensitivity_fn(nm, cm)
+
+            # construct label based on segmentation masks
             label_xy = np.zeros_like(cm, dtype=int)
             label_xy[cm] = 1
             label_xy[nm] = 2
 
             # yield job
-            job_args = dict(image=intensity, centroid=tcc, label=label_xy)
+            job_args = dict(image=image_xy, centroid=tcc, label=label_xy)
 
             yield cellid, job_args
 
@@ -91,7 +104,7 @@ if __name__ == '__main__':
     nuclei_mask_filepath = os.path.expanduser('~/polar_data/data/nuclei_mask.tif')
     cell_mask_filepath = os.path.expanduser('~/polar_data/data/cell_mask.tif')
     output_header = ['cellid', 'r', 'theta', 'label', 'intensity']
-    output_folderpath = os.path.expanduser('~/polar_data/transformed_result')
+    output_folderpath = os.path.expanduser('~/polar_data/transformed_result_dd')
     
     # prepare output folder
     if os.path.isdir(output_folderpath):
@@ -114,6 +127,13 @@ if __name__ == '__main__':
     dna_list = channel_list[4::4] # keep DNA1
     background_list = [1, 2, 3]
     channel_list = list(set(channel_list).difference(set(dna_list + background_list)))
+
+    # define sensitivity function
+    def sen_fn(nm, cm):
+        selem = morphology.disk(1)
+        nm = morphology.binary_dilation(nm, selem=selem)
+        cm = morphology.binary_dilation(cm, selem=selem)
+        return nm, cm
     
     # parallel processing
     wp = mp.Pool(os.cpu_count()) # worker pool
@@ -128,7 +148,8 @@ if __name__ == '__main__':
                 image_filepath=image_filepath, channelid=channelid,
                 nuclei_mask_filepath=nuclei_mask_filepath,
                 cell_mask_filepath=cell_mask_filepath, tile_shape=tile_shape,
-                cell_selection_criteria=cell_criteria, verbose=True)):
+                cell_selection_criteria=cell_criteria,
+                sensitivity_fn=None, verbose=True)):
             
                 csvwriter.writerows(array)
 
