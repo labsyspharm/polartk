@@ -2,6 +2,8 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
 
 from skimage import io, measure, exposure, morphology
 from skimage.external import tifffile
@@ -109,7 +111,22 @@ if __name__ == '__main__':
     axes[1, 0].set_ylabel(r'label (R$\theta$)')
     axes[2, 0].set_ylabel(r'image (R$\theta$)')
 
-    fig.tight_layout()
+    # custom legend
+    legend_elements = [
+            mlines.Line2D([0], [0], marker='o', color='w',
+                markerfacecolor='r', markeredgecolor='r',
+                label='cell centroid'),
+            mpatches.Patch(facecolor='tab:cyan', edgecolor='tab:cyan',
+                label='nuclei'),
+            mpatches.Patch(facecolor='tab:brown', edgecolor='tab:brown',
+                label='cytoplasm'),
+            mpatches.Patch(facecolor='tab:blue', edgecolor='tab:blue',
+                label='environment'),
+            ]
+    plt.figlegend(handles=legend_elements, ncol=4, bbox_to_anchor=(0.95, 0.99),
+            loc='upper right')
+
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig('../figures/demo_sensitivity_part1.png')
     plt.close()
 
