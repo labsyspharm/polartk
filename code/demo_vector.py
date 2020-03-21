@@ -3,10 +3,32 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
 
 from scipy import interpolate
 from skimage.external import tifffile
 from skimage import measure, io, exposure
+from matplotlib.legend_handler import HandlerPatch
+
+class HandlerArrow(HandlerPatch):
+    '''
+    For showing an arrow in a custom legend.
+
+    Source:
+    https://stackoverflow.com/questions/60781312/plotting-arrow-in-front-of-legend-matplotlib
+    '''
+    def __init__(self, arrow_params):
+        super().__init__()
+        self.arrow_params = arrow_params
+
+    def create_artists(self, legend, orig_handle, xdescent, ydescent, width,
+            height, fontsize, trans):
+        p = mpatches.FancyArrow(0, 0.5*height, width, 0,
+                head_width=0.75*height, **self.arrow_params)
+        self.update_prop(p, orig_handle, legend)
+        p.set_transform(trans)
+        return [p]
 
 def prep_intensity(arr):
     '''
@@ -27,6 +49,7 @@ if __name__ == '__main__':
 
     # params
     view_shape = (100, 100)
+    tile_shape = (15, 15)
 
     # load data
     with tifffile.TiffFile(image_filepath) as infile:
@@ -54,7 +77,14 @@ if __name__ == '__main__':
     talign_df.sort_values('polarity', ascending=False, inplace=True)
     talign_df.reset_index(drop=True, inplace=True)
 
-    for index, row in talign_df.iterrows():
+    # plot both positive and negative example
+    # examples picked through visual inspection
+    pos_cellid = 8069
+    neg_cellid = 7886
+
+    for cellid in [pos_cellid, neg_cellid]:
+        index = talign_df.index[talign_df['cellid'] == cellid][0]
+        row = talign_df.loc[index]
         # construct vector
         r = 5 * row['polarity']
         t = row['angle']
@@ -70,11 +100,58 @@ if __name__ == '__main__':
         valid_list = [xl >= 0, yl >= 0, xu < dna.shape[1], yu < dna.shape[0]]
         if not all(valid_list):
             continue
-        plt.imshow(rgb_image[xl:xu, yl:yu])
-        plt.arrow(yc-yl-dx, xc-xl-dy, dx, dy,
-                width=0.3, head_width=3, color='magenta')
-        plt.xticks([])
-        plt.yticks([])
-        plt.title('cell ID: {:.0f}'.format(row['cellid']))
+
+        # construct figure
+        txl = int(np.round(xc-tile_shape[0]/2))
+        tyl = int(np.round(yc-tile_shape[1]/2))
+        txu, tyu = txl+tile_shape[0], tyl+tile_shape[1]
+
+        fig, axes = plt.subplots(ncols=2, nrows=1, figsize=(10,5))
+        axes[0].imshow(rgb_image[xl:xu, yl:yu])
+        axes[0].set_title('full view')
+        tile_patch_1 = mpatches.Rectangle(xy=(tyl-yl, txl-xl),
+                width=tile_shape[1]-1, height=tile_shape[0]-1,
+                facecolor='none', edgecolor='magenta', linestyle='dashed')
+        axes[0].add_patch(tile_patch_1)
+
+        axes[1].imshow(rgb_image[txl:txu, tyl:tyu])
+        arrow_params = dict(color='magenta', overhang=0.5, length_includes_head=True)
+        axes[1].arrow(yc-tyl-dx, xc-txl-dy, 2*dx, 2*dy,
+                width=0.05, head_length=1, head_width=1,
+                **arrow_params,
+                label='polarization vector')
+        tile_patch_2 = mpatches.Rectangle(xy=(0, 0),
+                width=tile_shape[1]-1, height=tile_shape[0]-1,
+                facecolor='none', edgecolor='magenta', linestyle='dashed')
+        axes[1].add_patch(tile_patch_2)
+        axes[1].set_title('zoom-in')
+
+        for ax in axes:
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+        legend_elements = [
+                mpatches.Patch(facecolor='red', edgecolor='red',
+                    label='SOX10'),
+                mpatches.Patch(facecolor='lime', edgecolor='lime',
+                    label='PD1'),
+                mpatches.Patch(facecolor='white', edgecolor='white',
+                    label='DNA'),
+                mpatches.Patch(facecolor='none', edgecolor='magenta',
+                    linestyle='dashed', label=r'9.75x9.75 $\mu$m'),
+                mpatches.FancyArrow(x=0, y=0, dx=0, dy=0, width=3,
+                    label='polarization vector', **arrow_params),
+                ]
+        L = plt.figlegend(handles=legend_elements,
+                bbox_to_anchor=(0.95, 0.99), loc='upper right',
+                facecolor='black', framealpha=1, ncol=5,
+                handler_map={mpatches.FancyArrow : HandlerArrow(arrow_params)},
+                )
+        for t in L.get_texts():
+            t.set_color('white')
+
+        fig.suptitle('cell ID: {:.0f}'.format(row['cellid']), x=0.2, y=0.96)
+        fig.tight_layout(rect=[0, 0, 1, 0.9])
+        plt.savefig('../figures/demo_vector_cellid_{:.0f}.png'.format(row['cellid']))
         plt.show()
         plt.close()

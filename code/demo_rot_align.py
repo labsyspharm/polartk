@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 
 from scipy import interpolate
 
@@ -75,7 +76,21 @@ if __name__ == '__main__':
         plt.plot(t_grid, y_pred_all[i, :], 'k-', alpha=0.02)
 
     plt.plot(t_grid, y_pred_all.mean(axis=0), 'k-')
+
+    plt.title('PD1 angular distribution, aligned')
+    plt.xlabel('angle (degrees)')
+    plt.ylabel('normalized intensity')
+    plt.yticks([])
+
+    legend_elements = [
+            mlines.Line2D([0], [0], color='black', alpha=0.02,
+                label='individual cells (n={})'.format(y_pred_all.shape[0])),
+            mlines.Line2D([0], [0], color='black', alpha=1,
+                label='average'),
+            ]
+    plt.legend(handles=legend_elements, loc='upper right')
     plt.savefig(output_fig_filepath)
+    plt.show()
     plt.close()
 
     # make dataframe

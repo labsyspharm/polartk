@@ -80,5 +80,6 @@ if __name__ == '__main__':
     
     fig.suptitle('Demo absolute vs. relative polar coordinate', fontsize=fs)
     fig.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.show()
+    plt.savefig('../figures/demo_abs_rel_polar_coords.png')
+    plt.close()
     
