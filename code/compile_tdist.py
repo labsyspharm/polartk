@@ -8,8 +8,10 @@ import tqdm
 
 if __name__ == '__main__':
     # paths
-    data_filepattern = os.path.expanduser('~/polar_data/transformed_result/channel_*.csv')
-    output_filepath = os.path.expanduser('~/polar_data/angular_distribution.csv')
+    data_folderpath = os.path.expanduser('~/polar_data')
+    data_filepattern = os.path.join(data_folderpath, 'transformed_result_30x30',
+            'channel_*.csv')
+    output_filepath = os.path.join(data_folderpath, 'angular_distribution_30x30.csv')
     
     # params
     label_dict = {0: 'environment', 1: 'cytoplasm', 2: 'nucleus'}

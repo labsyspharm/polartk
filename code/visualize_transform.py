@@ -40,7 +40,7 @@ if __name__ == '__main__':
     image_filepath = os.path.expanduser('~/polar_data/data/image.ome.tif')
     
     # params
-    tile_shape = (15, 15)
+    tile_shape = (30, 30)
     
     # load data
     nuclei_mask = io.imread(nuclei_mask_filepath)
@@ -67,6 +67,8 @@ if __name__ == '__main__':
     # random sampling of cells
     all_label = list(region_dict.keys())
     np.random.shuffle(all_label)
+
+    all_label = [7541]
 
     for i in all_label:
         # unpack
@@ -146,5 +148,5 @@ if __name__ == '__main__':
                 loc='upper right')
 
         fig.suptitle('cell ID: {}'.format(i), y=0.98, x=0.15, ha='left')
-        fig.tight_layout(rect=[0, 0, 1, 0.95])
+        fig.tight_layout(rect=[0, 0, 1, 0.9])
         plt.show()

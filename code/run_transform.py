@@ -99,12 +99,12 @@ def process_job(job):
 
 if __name__ == '__main__':
     # params
-    tile_shape = (15, 15)
+    tile_shape = (30, 30)
     image_filepath = os.path.expanduser('~/polar_data/data/image.ome.tif')
     nuclei_mask_filepath = os.path.expanduser('~/polar_data/data/nuclei_mask.tif')
     cell_mask_filepath = os.path.expanduser('~/polar_data/data/cell_mask.tif')
     output_header = ['cellid', 'r', 'theta', 'label', 'intensity']
-    output_folderpath = os.path.expanduser('~/polar_data/transformed_result_dd')
+    output_folderpath = os.path.expanduser('~/polar_data/transformed_result_30x30')
     
     # prepare output folder
     if os.path.isdir(output_folderpath):

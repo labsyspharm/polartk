@@ -3,7 +3,7 @@ import typing
 import numpy as np
 
 from scipy.ndimage import morphology
-from sklearn import neighbors
+from sklearn import neighbors, preprocessing
 from scipy import stats
 
 def polar_dist(
@@ -77,6 +77,9 @@ def xy2rt(
         }
     if params['distance'] == 'polar':
         params['distance'] = polar_dist
+    elif params['distance'] == 'euclidean':
+        # Euclidean distance requires scaling
+        scale_model = preprocessing.MinMaxScaler()
 
     # pad to remove boundary conditions
     image_pad = np.pad(image, pad_width=params['pw'], mode='constant',
@@ -111,6 +114,9 @@ def xy2rt(
     
     # approximate with KNN
     rt = np.stack([r.flatten(), t.flatten()], axis=-1)
+    if params['distance'] == 'euclidean':
+        scale_model.fit(rt)
+        rt = scale_model.transform(rt)
     intensity_model = neighbors.KNeighborsRegressor(metric=params['distance'],
         n_neighbors=params['n_neighbors'])
     intensity_model.fit(rt, image_pad.flatten())
@@ -130,6 +136,8 @@ def xy2rt(
     
     # predict region and intensity
     rt_grid = np.stack([r_grid.flatten(), t_grid.flatten()], axis=-1)
+    if params['distance'] == 'euclidean':
+        rt_grid = scale_model.transform(rt_grid)
     image_rt = intensity_model.predict(rt_grid).reshape(shape)
     if label is not None:
         label_rt = label_model.predict(rt_grid).reshape(shape)

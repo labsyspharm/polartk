@@ -27,7 +27,7 @@ if __name__ == '__main__':
     cell_mask_filepath = os.path.join(data_folderpath, 'data', 'cell_mask.tif')
     
     # params
-    tile_shape = (15, 15)
+    tile_shape = (30, 30)
     
     # load data
     cc_df = pd.read_csv(cc_filepath)
@@ -54,7 +54,11 @@ if __name__ == '__main__':
     cc_df.sort_values('channel_{}'.format(index_cd68), ascending=False,
                       inplace=True)
     cc_df.reset_index(drop=True, inplace=True)
-    for cellid in cc_df['cellid'].tolist():
+
+    for index in cc_df.index:
+        print(cc_df.loc[index])
+        cellid, corrcoef = cc_df.loc[index,
+                ['cellid', 'channel_{}'.format(index_cd68)]]
         # calculate tile coords
         cell_centroid = nuclei_region_dict[cellid].centroid
         txl = int(np.round(cell_centroid[0]-tile_shape[0]/2))
@@ -77,7 +81,7 @@ if __name__ == '__main__':
         
         # plot
         fig, axes = plt.subplots(ncols=2, nrows=1, sharex=True, sharey=True,
-                                 figsize=(10, 5))
+                                 figsize=(6, 3))
         axes[0].imshow(rgb_image)
         axes[0].set_title('RGB=(CD68, PD1, DNA1)')
         axes[1].imshow(cell_label, cmap='tab10')
@@ -87,6 +91,6 @@ if __name__ == '__main__':
             ax.set_xticks([])
             ax.set_yticks([])
             
-        fig.suptitle('cell ID: {}'.format(cellid))
+        fig.suptitle('cell ID: {}, corrcoef: {:.2e}'.format(cellid, corrcoef))
         fig.tight_layout(rect=[0, 0, 1, 0.9])
         plt.show()
