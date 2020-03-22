@@ -73,8 +73,11 @@ def xy2rt(
             'pw': 1, # pad width, unit: pixel
             'pv': 0, # pad value for image
             'n_neighbors': 5, # params for KNN intensity model
+            'distance': 'euclidean', # distance metric
         }
-        
+    if params['distance'] == 'polar':
+        params['distance'] = polar_dist
+
     # pad to remove boundary conditions
     image_pad = np.pad(image, pad_width=params['pw'], mode='constant',
             constant_values=params['pv'])
@@ -108,11 +111,12 @@ def xy2rt(
     
     # approximate with KNN
     rt = np.stack([r.flatten(), t.flatten()], axis=-1)
-    intensity_model = neighbors.KNeighborsRegressor(metric=polar_dist,
-                                                    n_neighbors=params['n_neighbors'])
+    intensity_model = neighbors.KNeighborsRegressor(metric=params['distance'],
+        n_neighbors=params['n_neighbors'])
     intensity_model.fit(rt, image_pad.flatten())
     if label is not None:
-        label_model = neighbors.KNeighborsClassifier(metric=polar_dist, n_neighbors=1)
+        label_model = neighbors.KNeighborsClassifier(metric=params['distance'],
+                n_neighbors=1)
         label_model.fit(rt, label_pad.flatten())
 
     # create (R, Theta) grid
