@@ -10,6 +10,7 @@ if __name__ == '__main__':
     data_folderpath = os.path.expanduser('~/polar_data')
     cc_filepath = os.path.join(data_folderpath, 'pd1_env_corrcoef.csv')
     marker_filepath = os.path.join(data_folderpath, 'data', 'markers.csv')
+    output_fig_filepath = '../figures/pd1_correlation.png'
     
     # load data
     cc_df = pd.read_csv(cc_filepath)
@@ -58,4 +59,5 @@ if __name__ == '__main__':
     plt.ylabel('normalized histogram count')
     plt.yticks([])
     plt.title('PD1 (cytoplasm) vs. 22 markers (environment)')
+    plt.savefig(output_fig_filepath)
     plt.show()
