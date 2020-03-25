@@ -73,14 +73,7 @@ def xy2rt(
             'pw': 1, # pad width, unit: pixel
             'pv': 0, # pad value for image
             'n_neighbors': 5, # params for KNN intensity model
-            'distance': 'euclidean', # distance metric
         }
-    if params['distance'] == 'polar':
-        params['distance'] = polar_dist
-    elif params['distance'] == 'euclidean':
-        # Euclidean distance requires scaling
-        scale_model = preprocessing.MinMaxScaler()
-
     # pad to remove boundary conditions
     image_pad = np.pad(image, pad_width=params['pw'], mode='constant',
             constant_values=params['pv'])
@@ -97,7 +90,6 @@ def xy2rt(
         xc, yc = np.median(x), np.median(y)
     else:
         xc, yc = centroid
-    xc, yc = xc+params['pw'], yc+params['pw']
     
     # radius
     if label is None:
@@ -114,14 +106,11 @@ def xy2rt(
     
     # approximate with KNN
     rt = np.stack([r.flatten(), t.flatten()], axis=-1)
-    if params['distance'] == 'euclidean':
-        scale_model.fit(rt)
-        rt = scale_model.transform(rt)
-    intensity_model = neighbors.KNeighborsRegressor(metric=params['distance'],
+    intensity_model = neighbors.KNeighborsRegressor(metric=polar_dist,
         n_neighbors=params['n_neighbors'])
     intensity_model.fit(rt, image_pad.flatten())
     if label is not None:
-        label_model = neighbors.KNeighborsClassifier(metric=params['distance'],
+        label_model = neighbors.KNeighborsClassifier(metric=polar_dist,
                 n_neighbors=1)
         label_model.fit(rt, label_pad.flatten())
 
@@ -136,8 +125,6 @@ def xy2rt(
     
     # predict region and intensity
     rt_grid = np.stack([r_grid.flatten(), t_grid.flatten()], axis=-1)
-    if params['distance'] == 'euclidean':
-        rt_grid = scale_model.transform(rt_grid)
     image_rt = intensity_model.predict(rt_grid).reshape(shape)
     if label is not None:
         label_rt = label_model.predict(rt_grid).reshape(shape)
