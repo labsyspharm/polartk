@@ -120,7 +120,7 @@ def xy2rt(
         shape = image.shape
     r_grid, t_grid = np.meshgrid(
             np.linspace(start=0, stop=r.max(), num=shape[0]),
-            np.linspace(start=0, stop=2*np.pi, num=shape[1], endpoint=False),
+            np.linspace(start=-np.pi, stop=np.pi, num=shape[1], endpoint=False),
             indexing='ij')
     
     # predict region and intensity

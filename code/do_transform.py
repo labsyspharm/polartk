@@ -57,7 +57,7 @@ def xy2rt(job: np.ndarray) -> np.ndarray:
     # prepare grid points after transformation
     r_grid, t_grid = np.meshgrid(
             np.linspace(start=0, stop=r.max(), num=job.shape[0]),
-            np.linspace(start=0, stop=2*np.pi, num=job.shape[1], endpoint=False),
+            np.linspace(start=-np.pi, stop=np.pi, num=job.shape[1], endpoint=False),
             indexing='ij')
 
     # approximate label by KNN
@@ -85,18 +85,11 @@ def xy2rt(job: np.ndarray) -> np.ndarray:
 
 if __name__ == '__main__':
     # paths
-    data_folderpath = os.path.expanduser('~/polar_data/transform_job_30x30')
-    output_folderpath = './'
-    jobid = int(sys.argv[1])
-    job_filename = sorted(os.listdir(data_folderpath))[jobid]
-    job_filepath = os.path.join(data_folderpath, job_filename)
+    input_filepath = './job_1497.npy'
+    output_filepath = './output_job_1497.npy'
 
     # run job
-    job = np.load(job_filepath)
+    job = np.load(input_filepath)
     output = xy2rt(job)
-
-    # save to disk
-    output_filename = 'output_' + job_filename
-    output_filepath = os.path.join(output_folderpath, output_filename)
     np.save(output_filepath, output)
 
