@@ -12,13 +12,9 @@ from scipy.ndimage import morphology
 
 if __name__ == '__main__':
     # paths
-    data_folderpath = os.path.expanduser('~/polar_data/')
-#    xydata_filepath = os.path.join(data_folderpath, 'transform_job_30x30',
-#            'job_1497.npy')
-#    rtdata_filepath = os.path.join(data_folderpath, 'presentation_figures',
-#            'output_job_1497.npy')
     xydata_filepath = './job_1497.npy'
     rtdata_filepath = './output_job_1497.npy'
+    output_filepath = os.path.expanduser('~/polartk/figures/fig_1a.png')
 
     # load data
     label_xy = np.load(xydata_filepath)[..., 0]
@@ -92,5 +88,5 @@ if __name__ == '__main__':
 
     # layout and show
     fig.tight_layout(rect=[0, 0.05, 1, 1])
-    plt.savefig(os.path.join(data_folderpath, 'presentation_figures', 'fig_1a.png'))
+    plt.savefig(output_filepath, dpi=600)
     plt.show()
