@@ -26,7 +26,7 @@ if __name__ == '__main__':
             rtdata_dict[scenario] = data
 
     # plot euclidean coordinate
-    fig, axes = plt.subplots(ncols=3, nrows=3, figsize=(4, 6))
+    fig, axes = plt.subplots(ncols=3, nrows=3, figsize=(5, 5))
     fs = 6
 
     scenario_list = ['e', 'x', 'd']
@@ -62,20 +62,20 @@ if __name__ == '__main__':
             mpatches.Patch(facecolor='tab:blue', edgecolor='tab:blue',
                 label='environment'),
             ]
-    plt.figlegend(handles=legend_elements, ncol=4, bbox_to_anchor=(0.55, 0.935),
+    plt.figlegend(handles=legend_elements, ncol=4, bbox_to_anchor=(0.55, 0.93),
             loc='center', fontsize=6)
 
     fig.text(0.55, 0.02, 'cytoplasm mask', ha='center', fontsize=fs)
-    fig.text(0.04, 0.45, 'nuclei mask', ha='center', fontsize=fs,
+    fig.text(0.05, 0.45, 'nuclei mask', ha='center', fontsize=fs,
             rotation='vertical')
     fig.suptitle('Euclidean coordinate', fontsize=fs, y=0.98)
-    fig.tight_layout(rect=[0.05, 0, 1, 0.98])
+    fig.tight_layout(rect=[0.05, 0.02, 1, 0.93])
     plt.savefig(output1_filepath, dpi=600)
     plt.show()
     plt.close()
 
     # plot polar coordinate
-    fig, axes = plt.subplots(ncols=3, nrows=3, figsize=(4, 6))
+    fig, axes = plt.subplots(ncols=3, nrows=3, figsize=(5, 5))
     fs = 6
 
     scenario_list = ['e', 'x', 'd']
@@ -106,14 +106,14 @@ if __name__ == '__main__':
             mpatches.Patch(facecolor='tab:blue', edgecolor='tab:blue',
                 label='environment'),
             ]
-    plt.figlegend(handles=legend_elements, ncol=3, bbox_to_anchor=(0.55, 0.935),
+    plt.figlegend(handles=legend_elements, ncol=3, bbox_to_anchor=(0.55, 0.93),
             loc='center', fontsize=6)
 
     fig.text(0.55, 0.02, 'cytoplasm mask', ha='center', fontsize=fs)
-    fig.text(0.04, 0.45, 'nuclei mask', ha='center', fontsize=fs,
+    fig.text(0.05, 0.45, 'nuclei mask', ha='center', fontsize=fs,
             rotation='vertical')
     fig.suptitle('polar coordinate', fontsize=fs, y=0.98)
-    fig.tight_layout(rect=[0.05, 0, 1, 0.98])
+    fig.tight_layout(rect=[0.05, 0.02, 1, 0.93])
     plt.savefig(output2_filepath, dpi=600)
     plt.show()
     plt.close()
