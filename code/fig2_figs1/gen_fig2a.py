@@ -19,8 +19,8 @@ class HandlerArrow(HandlerPatch):
     '''
     def create_artists(self, legend, orig_handle, xdescent, ydescent, width,
             height, fontsize, trans):
-        p = mpatches.FancyArrowPatch(posA=(-9, 2), posB=(15, 2),
-                mutation_scale=8,
+        p = mpatches.FancyArrowPatch(posA=(0, 2), posB=(22, 2),
+                mutation_scale=10,
                 color='magenta', arrowstyle='<->')
         self.update_prop(p, orig_handle, legend)
         p.set_transform(trans)
@@ -28,90 +28,97 @@ class HandlerArrow(HandlerPatch):
 
 if __name__ == '__main__':
     # paths
-    data_folderpath = '.'
+    data_folderpath = './scenario_data'
     output_filepath = os.path.expanduser('~/polartk/figures/fig_2a.png')
 
-    # load data
-    xydata_dict = {}
-    rtdata_dict = {}
-    for filename in os.listdir(data_folderpath):
-        if os.path.splitext(filename)[1] != '.npy':
-            continue
-        filepath = os.path.join(data_folderpath, filename)
-        scenario = os.path.splitext(filename)[0].split('_')[-1]
-        data = np.load(filepath)
-        if filename.startswith('scenario'): # xy
-            xydata_dict[scenario] = data
-        elif filename.startswith('output'): # rt
-            rtdata_dict[scenario] = data
+    # load reference data
+    reference_filepath = os.path.join(data_folderpath, 'radial_nxcx.npy')
+    reference = np.load(reference_filepath)
+    ref_image, ref_label = reference[..., 1], reference[..., 0]
+
+    # load angular distribution data
+    radial_dict = {}
+    translational_dict = {}
+    full_tgrid = np.linspace(-np.pi, np.pi, num=ref_image.shape[1], endpoint=False)
+    full_tgrid = np.degrees(full_tgrid)
+    for name in os.listdir(data_folderpath):
+        if os.path.splitext(name)[1] == '.npy' and name.startswith('output_'):
+            filepath = os.path.join(data_folderpath, name)
+            data = np.load(filepath)
+            mask = data[..., 0] == 1 # cytoplasm
+            image = data[..., 1]
+
+            tdist = np.multiply(image, mask).sum(axis=0)
+            valid_mask = mask.sum(axis=0) > 0
+            tdist = tdist[valid_mask]
+            tgrid = full_tgrid[valid_mask]
+
+            tdist /= tdist.sum() # normalize total expression abundance
+            if 'radial_' in name:
+                key = os.path.splitext(name)[0][len('output_radial_'):]
+                radial_dict[key] = (tgrid, tdist)
+            elif 'translational' in name:
+                key = os.path.splitext(name)[0][len('output_translational_'):]
+                translational_dict[key] = (tgrid, tdist)
 
     # plot
-    fig, axes = plt.subplots(ncols=4, nrows=1, figsize=(8, 3))
+    fig, axes = plt.subplots(ncols=2, nrows=3, figsize=(5.5, 9))
+    fs = 10
+    arrow_color = 'black'
 
-    original_pd1 = xydata_dict['nxcx'][..., 1]
-    axes[0].imshow(original_pd1, cmap='gray')
-    axes[0].set_title('image (Euclidean)', fontsize=8)
+    axes[0, 0].imshow(ref_image, cmap='gray')
+    axes[0, 0].set_title('image (Euclidean coordinate)', fontsize=fs)
 
-    original_label_xy = xydata_dict['nxcx'][..., 0]
-    axes[1].imshow(original_label_xy, cmap='tab10')
-    axes[1].set_title('mask (Euclidean)', fontsize=8)
-    axes[1].annotate(s='', xy=(18, 16), xytext=(18+5, 16-5),
-            arrowprops=dict(arrowstyle='<->', color='magenta'))
-    axes[1].annotate(s='', xy=(18, 9), xytext=(18+5, 9-5),
-            arrowprops=dict(arrowstyle='<->', color='magenta'))
+    axes[0, 1].set_visible(False)
 
-    original_label_rt = rtdata_dict['nxcx'][..., 0]
-    axes[2].imshow(original_label_rt, cmap='tab10')
-    axes[2].set_title('mask (polar)', fontsize=8)
-    axes[2].annotate(s='', xy=(13.5, 5), xytext=(13.5+0, 5+5*np.sqrt(2)),
-            arrowprops=dict(arrowstyle='<->', color='magenta'))
-    axes[2].annotate(s='', xy=(20, 0), xytext=(20+0, 0+5*np.sqrt(2)),
-            arrowprops=dict(arrowstyle='<->', color='magenta'))
+    axes[1, 0].imshow(ref_label, cmap='tab10')
+    axes[1, 0].set_title('radial perturbations', fontsize=fs)
+    axes[1, 0].annotate(s='', xy=(18, 16), xytext=(18+5, 16-5),
+            arrowprops=dict(arrowstyle='<->', color=arrow_color))
+    axes[1, 0].annotate(s='', xy=(18, 9), xytext=(18+5, 9-5),
+            arrowprops=dict(arrowstyle='<->', color=arrow_color))
 
-    for ax in axes[0:3]:
+    axes[2, 0].imshow(ref_label, cmap='tab10')
+    axes[2, 0].set_title('translational perturbations', fontsize=fs)
+    xc, yc = 20.5, 6.5
+    length = 5*np.sqrt(2)
+    axes[2, 0].annotate(s='', xy=(xc-length/2, yc), xytext=(xc+length/2, yc),
+            arrowprops=dict(arrowstyle='<->', color=arrow_color))
+    axes[2, 0].annotate(s='', xy=(xc, yc-length/2), xytext=(xc, yc+length/2),
+            arrowprops=dict(arrowstyle='<->', color=arrow_color))
+
+    for ax in axes[:, 0].flatten():
         ax.set_xticks([])
         ax.set_yticks([])
 
-    tgrid_list = []
-    tdist_list = []
-    full_tgrid = np.linspace(-np.pi, np.pi, num=30, endpoint=False)
-    full_tgrid = np.degrees(full_tgrid)
+    for key in radial_dict:
+        tgrid, tdist = radial_dict[key]
+        axes[1, 1].plot(tgrid, tdist, 'k-', alpha=0.1)
 
-    for rtdata in rtdata_dict.values():
-        cytoplasm_mask = rtdata[..., 0] == 1
-        intensity = rtdata[..., 1]
-        tdist = np.multiply(intensity, cytoplasm_mask).sum(axis=0)
-        valid_mask = cytoplasm_mask.sum(axis=0) > 0
-        tdist = tdist[valid_mask]
-        tgrid = full_tgrid[valid_mask]
+    for key in translational_dict:
+        tgrid, tdist = translational_dict[key]
+        axes[2, 1].plot(tgrid, tdist, 'k-', alpha=0.1)
 
-        tdist /= tdist.sum() # normalize total expression abundance
+    n_list = [len(radial_dict), len(translational_dict)]
+    for ax, n in zip(axes[1:, 1].flatten(), n_list):
+        ax.set_yticks([])
+        ax.set_xticks(np.linspace(-180, 180, num=3))
+        ax.set_xticklabels(np.linspace(-180, 180, num=3).astype(int), fontsize=fs)
+        ax.set_xlabel('angle (degrees)', fontsize=fs)
+        ax.set_ylabel('normalized intensity', fontsize=fs)
 
-        tgrid_list.append(tgrid)
-        tdist_list.append(tdist)
+        ax.annotate(s='', xy=(-20, 0.027), xytext=(-20, 0.027+0.025),
+                arrowprops=dict(arrowstyle='<->', color=arrow_color))
 
-    for tgrid, tdist in zip(tgrid_list, tdist_list):
-        axes[3].plot(tgrid, tdist, 'k-', alpha=0.1)
+        asp = np.diff(ax.get_xlim())[0] / np.diff(ax.get_ylim())[0]
+        ax.set_aspect(asp)
 
-    axes[3].set_yticks([])
-    axes[3].set_xticks(np.linspace(-180, 180, num=3))
-    axes[3].set_xticklabels(np.linspace(-180, 180, num=3).astype(int), fontsize=8)
-    axes[3].set_title('angular distributions', fontsize=8)
-    axes[3].set_xlabel('angle (degrees)', fontsize=8)
-    axes[3].set_ylabel('normalized intensity', fontsize=8)
-
-    axes[3].annotate(s='', xy=(-20, 0.027), xytext=(-20, 0.027+0.025),
-            arrowprops=dict(arrowstyle='<->', color='magenta'))
-
-    asp = np.diff(axes[3].get_xlim())[0] / np.diff(axes[3].get_ylim())[0]
-    axes[3].set_aspect(asp)
-
-    # custom legend
-    legend_elements = [
-            mlines.Line2D([0], [0], color='black', alpha=0.1,
-                label='perturbations (n={})'.format(len(tdist_list))),
-            ]
-    axes[3].legend(handles=legend_elements, fontsize=6)
+        # custom legend
+        legend_elements = [
+                mlines.Line2D([0], [0], color='black', alpha=0.1,
+                    label='perturbations\n(n={})'.format(n)),
+                ]
+        ax.legend(handles=legend_elements, fontsize=fs)
 
     # custom legend
     legend_elements = [
@@ -122,24 +129,25 @@ if __name__ == '__main__':
             mpatches.Patch(facecolor='tab:blue', edgecolor='tab:blue',
                 label='environment'),
             mpatches.FancyArrowPatch(posA=(0, 0), posB=(5, 0), arrowstyle='<->',
-                label='perturbation directions', color='magenta'),
+                label='perturbation\ndirections', color=arrow_color),
             ]
-    plt.figlegend(handles=legend_elements, ncol=4, bbox_to_anchor=(0.5, 0.11),
-            loc='lower center', fontsize=6,
+    plt.figlegend(handles=legend_elements, ncol=1, bbox_to_anchor=(0.65, 0.95),
+            loc='upper left', fontsize=fs, title='mask legend',
             handler_map={mpatches.FancyArrowPatch : HandlerArrow()},
             )
 
     # custom colorbar
-    ax_colorbar = fig.add_axes([0.025, 0.15, 0.205, 0.03])
+    ax_colorbar = fig.add_axes([0.5, 0.7, 0.03, 0.27])
     cbar = mcolorbar.ColorbarBase(ax_colorbar, cmap=mcolormap.gray,
-            orientation='horizontal',
+            orientation='vertical',
             norm=mcolors.Normalize(vmin=0, vmax=1))
     cbar.set_ticks([0, 1])
     cbar.set_ticklabels(['low', 'high'])
-    cbar.ax.tick_params(labelsize=6)
-    cbar.set_label('intensity', fontsize=6)
-    cbar.ax.xaxis.set_label_coords(0.5, -0.5)
+    cbar.ax.tick_params(labelsize=fs)
+    cbar.set_label('image intensity', fontsize=fs, rotation='vertical',
+            ha='center', va='top')
+    cbar.ax.yaxis.set_label_coords(2, 0.5)
 
-    fig.tight_layout(rect=[0, 0, 1, 1])
+    fig.tight_layout()
     plt.savefig(output_filepath, dpi=600)
     plt.show()
