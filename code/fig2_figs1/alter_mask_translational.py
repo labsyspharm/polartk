@@ -32,7 +32,7 @@ if __name__ == '__main__':
     shift_list = [-1, 0, 1]
     for shift_x in shift_list:
         for shift_y in shift_list:
-            t_fn = transform.AffineTransform(translation=(shift_x, shift_y))
+            t_fn = transform.AffineTransform(translation=(-shift_x, -shift_y))
             cm = transform.warp(cell_mask, t_fn.inverse)
             lxy = nuclei_mask.astype(int) + cm.astype(int)
             scenario = np.stack([lxy, pd1_xy], axis=-1)
