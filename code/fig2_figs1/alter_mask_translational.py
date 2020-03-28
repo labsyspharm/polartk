@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from skimage import morphology
+from skimage import transform
 
 if __name__ == '__main__':
     # paths
@@ -29,21 +29,15 @@ if __name__ == '__main__':
     pd1_xy = xydata[..., 1+index_pd1]
 
     # generate scenarios
-    selem = morphology.disk(1) # disk with diameter of 1 pixel
-    fn_dict = {
-            'e': lambda arr: morphology.binary_erosion(arr, selem=selem),
-            'x': lambda arr: arr,
-            'd': lambda arr: morphology.binary_dilation(arr, selem=selem),
-            }
-    for nuclei_op in fn_dict:
-        for cell_op in fn_dict:
-            nuclei_fn = fn_dict[nuclei_op]
-            cell_fn = fn_dict[cell_op]
-            nm = nuclei_fn(nuclei_mask)
-            cm = cell_fn(cell_mask)
-            lxy = nm.astype(int) + cm.astype(int)
+    shift_list = [-1, 0, 1]
+    for shift_x in shift_list:
+        for shift_y in shift_list:
+            t_fn = transform.AffineTransform(translation=(shift_x, shift_y))
+            cm = transform.warp(cell_mask, t_fn.inverse)
+            lxy = nuclei_mask.astype(int) + cm.astype(int)
             scenario = np.stack([lxy, pd1_xy], axis=-1)
-            output_filepath = 'scenario_n{}c{}.npy'.format(nuclei_op, cell_op)
+            output_filepath = 'scenario_data/translational_c{}{}.npy'\
+                    .format(shift_x, shift_y)
             np.save(output_filepath, scenario)
 
     print('all done.')
