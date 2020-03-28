@@ -87,11 +87,6 @@ def xy2rt(
             np.arange(in_shape[1]),
             indexing='ij')
 
-    if centroid is None:
-        xc, yc = np.median(x), np.median(y)
-    else:
-        xc, yc = centroid
-    
     # pad to remove boundary conditions
     if label is not None:
         label_pad = np.pad(label, pad_width=params['pw'], mode='constant',
@@ -102,6 +97,15 @@ def xy2rt(
         image_pad = np.pad(image, pad_width=params['pw'], mode='constant',
             constant_values=params['pv'])
         image_pad_list.append(image_pad)
+
+    # get centroid
+    if label is not None:
+        nuclei_pixels = np.argwhere(label_xy_pad == 2)
+        xc, yc = np.mean(nuclei_pixels, axis=0)
+    elif centroid is not None:
+        xc, yc = centroid
+    else:
+        xc, yc = np.median(x), np.median(y)
 
     # radius
     if label is None:
