@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # params
     tile_shape = (30, 30)
     shape_dict = {}
-    output_filepath = os.path.expanduser('~/polartk/figures/fig_2c.png')
+    output_filepath = os.path.expanduser('~/polartk/figures/fig_s3.png')
 
     # coordinates
     x, y = np.meshgrid(range(tile_shape[0]), range(tile_shape[1]),
