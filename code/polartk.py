@@ -156,7 +156,7 @@ def xy2rt(
    
     return out_dict
     
-def polarity(d: typing.Sequence[float]):
+def polarity(d: typing.Sequence[float]) -> float:
     '''
     Custom definition of polarity.
     
