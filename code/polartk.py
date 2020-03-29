@@ -123,7 +123,7 @@ def xy2rt(
     # create (R, Theta) grid
     # note that angle 2*pi == 0, so endpoint=False for angle
     if out_shape is None:
-        out_shape = label.shape
+        out_shape = in_shape
 
     r_grid, t_grid = np.meshgrid(
             np.linspace(start=0, stop=r.max(), num=out_shape[0]),
