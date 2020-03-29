@@ -30,7 +30,7 @@ def xy2rt(
     label: np.ndarray=None,
     out_shape: typing.Tuple[int, int]=None,
     params: typing.Dict[str, typing.Union[int, float]]=None,
-    ) -> typing.Dict[np.ndarray]:
+    ) -> typing.Dict[str, np.ndarray]:
     '''
     Transform an image from xy (Euclidean) coordinate to rt (polar) coordinate.
     
