@@ -100,7 +100,7 @@ def xy2rt(
 
     # get centroid
     if label is not None:
-        nuclei_pixels = np.argwhere(label_xy_pad == 2)
+        nuclei_pixels = np.argwhere(label_pad == 2)
         xc, yc = np.mean(nuclei_pixels, axis=0)
     elif centroid is not None:
         xc, yc = centroid
