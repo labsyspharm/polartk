@@ -21,7 +21,7 @@ def infer_centroid(image, num_bin=10):
         for i in range(num_bin):
             bin_low, bin_high = r_bins[i].min(), r_bins[i].max()
             mask = (r >= bin_low) & (r < bin_high)
-            bin_std[i] = z[mask].std()
+            bin_std[i] = image[mask].std()
 
         return bin_std.mean()
 
