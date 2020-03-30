@@ -1,7 +1,12 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
+    # path
+    output_filepath = os.path.expanduser('~/polartk/figures/demo_maskfree_transform.png')
+
     # load data
     im_xy = np.load('im_xy.npy')
     im_rt_std = np.load('im_rt_std.npy')
@@ -39,5 +44,6 @@ if __name__ == '__main__':
     axes[1, 0].set_ylabel('PD1', fontsize=fs)
 
     fig.tight_layout()
+    plt.savefig(output_filepath, dpi=600)
     plt.show()
 
