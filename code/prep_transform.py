@@ -10,16 +10,37 @@ from skimage.external import tifffile
 if __name__ == '__main__':
     # paths and params
     tile_shape = (30, 30)
+
     data_folderpath = os.path.expanduser('~/polar_data')
     image_filepath = os.path.join(data_folderpath, 'data', 'image.ome.tif')
     nuclei_mask_filepath = os.path.join(data_folderpath, 'data', 'nuclei_mask.tif')
     cell_mask_filepath = os.path.join(data_folderpath, 'data', 'cell_mask.tif')
+    marker_filepath = os.path.join(data_folderpath, 'data', 'markers.csv')
+
     output_folderpath = os.path.join(data_folderpath, 'transform_job_30x30')
+    output_marker_filepath = os.path.join(output_folderpath, 'selected_markers.csv')
     
     # prepare output folder
     if os.path.isdir(output_folderpath):
         shutil.rmtree(output_folderpath)
     os.mkdir(output_folderpath)
+
+    # get marker names
+    with open(marker_filepath, 'r') as infile:
+        marker_list = [line.strip() for line in infile.readlines()]
+    old_index = list(range(len(marker_list)))
+    dna_index = old_index[4::4] # keep DNA1
+    background_index = [1, 2, 3]
+    kept_index = list(set(old_index).difference(set(dna_index + background_index)))
+
+    marker_df = pd.DataFrame(columns=['original_index', 'marker_name'],
+            index=range(len(kept_index)))
+    marker_df['original_index'] = kept_index
+    marker_df['marker_name'] = marker_df['original_index'].apply(
+            lambda x: marker_list[x])
+    marker_df.reset_index(inplace=True)
+    marker_df.rename(columns={'index': 'new_index'}, inplace=True)
+    marker_df.to_csv(output_marker_filepath, index=False)
 
     # load data
     nuclei_mask = io.imread(nuclei_mask_filepath)
@@ -42,16 +63,9 @@ if __name__ == '__main__':
     
     # main loop
     with tifffile.TiffFile(image_filepath) as tif:
-        # select channels
-        num_channel = len(tif.series[0].pages)-2 # last two are masks for this file
-        channel_list = list(range(num_channel))
-        dna_list = channel_list[4::4] # keep DNA1
-        background_list = [1, 2, 3]
-        channel_list = list(set(channel_list).difference(set(dna_list + background_list)))
-
         # pre-calculate percentiles for clipping
         pct_dict = {}
-        for index_channel in channel_list:
+        for index_channel in kept_index:
             image = tif.series[0].pages[index_channel].asarray(memmap=True)
             image = image.astype(float)
             pct_dict[index_channel] = np.percentile(image, (1, 99))
