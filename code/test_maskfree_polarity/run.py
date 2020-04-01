@@ -120,6 +120,11 @@ if __name__ == '__main__':
     demo1_cc = np.corrcoef(demo1_gs_rt)
     demo2_cc = np.corrcoef(demo2_gs_rt)
 
+    # save to disk
+    np.save('demo1_cc.npy', demo1_cc)
+    np.save('demo2_cc.npy', demo2_cc)
+
+    # plot
     fig, axes = plt.subplots(ncols=5, nrows=2, figsize=(10, 4),
             sharex=True, sharey=True)
     fs = 10
@@ -147,4 +152,6 @@ if __name__ == '__main__':
         ax.set_yticks([])
 
     fig.tight_layout()
+    plt.savefig(os.path.expanduser('~/polartk/figures/'\
+            'demo_polar_coordinate_cross_correlation.png'), dpi=600)
     plt.show()
