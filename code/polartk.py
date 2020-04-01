@@ -3,7 +3,7 @@ import typing
 import numpy as np
 
 from scipy.ndimage import morphology
-from sklearn import neighbors
+from sklearn import neighbors, preprocessing
 from scipy import stats
 
 def polar_dist(
@@ -25,18 +25,18 @@ def polar_dist(
     return np.sqrt(r1**2 + r2**2 - 2 * r1 * r2 * np.cos(t1 - t2))
 
 def xy2rt(
-    image: np.ndarray,
+    images: typing.Sequence[np.ndarray],
     centroid: typing.Sequence[float]=None,
     label: np.ndarray=None,
-    shape: typing.Tuple[int, int]=None,
+    out_shape: typing.Tuple[int, int]=None,
     params: typing.Dict[str, typing.Union[int, float]]=None,
-    ) -> typing.Sequence[np.ndarray]:
+    ) -> typing.Dict[str, np.ndarray]:
     '''
     Transform an image from xy (Euclidean) coordinate to rt (polar) coordinate.
     
     Args
-        image: numpy.ndarray
-            The intensity image to be transformed.
+        images: sequence of numpy.ndarray
+            The intensity images to be transformed.
         centroid: sequence of float, optional
             Centroid, in xy coordinate, within the image to be used as the
             origin of the polar coordinate. If not specified, the median
@@ -46,7 +46,7 @@ def xy2rt(
             If specified, the radius of the polar coordinate will be the relative
             distance from the cell contour. If not specified, the radius will
             be relative to the centroid.
-        shape: tuple of int, optional
+        out_shape: tuple of int, optional
             Output shape. Used to generate the output grid for prediction.
             If not specified, the shape of input ("image") will be used.
             Can be larger than the shape of input, but depending on the
@@ -59,40 +59,54 @@ def xy2rt(
             n_neighbors: params for KNN intensity model
             
     Return
-        r_grid: np.ndarray
-            Radius grid of the output, unit: pixel.
-        t_grid: np.ndarray
-            Angle grid of the output, unit: radian.
-        image_rt: np.ndarray
-            Transformed image.
-        label_rt: np.ndarray, if label is given
-            Transformed label.
+        Dictionary of intermediate and final results of the transformation.
     '''
+    # fill in default params
+    default_params = {
+        'pw': 1, # pad width, unit: pixel
+        'pv': 0, # pad value for image
+        'n_neighbors': 5, # params for KNN intensity model
+    }
     if params is None:
-        params = {
-            'pw': 1, # pad width, unit: pixel
-            'pv': 0, # pad value for image
-            'n_neighbors': 5, # params for KNN intensity model
-        }
-        
-    # pad to remove boundary conditions
-    image_pad = np.pad(image, pad_width=params['pw'], mode='constant',
-            constant_values=params['pv'])
-    if label is not None:
-        label_pad = np.pad(label, pad_width=params['pw'], mode='constant',
-                           constant_values=0) # 0=background
+        params = default_params
+    else:
+        for key in default_params:
+            if key not in params:
+                params[key] = default_params[key]
+
+    # get shape
+    if label is None:
+        in_shape = images[0].shape
+    else:
+        in_shape = label.shape
+    in_shape = (in_shape[0] + 2*params['pw'], in_shape[1] + 2*params['pw'])
         
     # x, y
     x, y = np.meshgrid(
-            np.arange(image_pad.shape[0]),
-            np.arange(image_pad.shape[1]),
+            np.arange(in_shape[0]),
+            np.arange(in_shape[1]),
             indexing='ij')
-    if centroid is None:
-        xc, yc = np.median(x), np.median(y)
-    else:
+
+    # pad to remove boundary conditions
+    if label is not None:
+        label_pad = np.pad(label, pad_width=params['pw'], mode='constant',
+                           constant_values=0) # 0=background
+
+    image_pad_list = []
+    for image in images:
+        image_pad = np.pad(image, pad_width=params['pw'], mode='constant',
+            constant_values=params['pv'])
+        image_pad_list.append(image_pad)
+
+    # get centroid
+    if label is not None:
+        nuclei_pixels = np.argwhere(label_pad == 2)
+        xc, yc = np.mean(nuclei_pixels, axis=0)
+    elif centroid is not None:
         xc, yc = centroid
-    xc, yc = xc+params['pw'], yc+params['pw']
-    
+    else:
+        xc, yc = np.median(x), np.median(y)
+
     # radius
     if label is None:
         r = np.sqrt((x-xc)**2 + (y-yc)**2)
@@ -106,36 +120,43 @@ def xy2rt(
     # angle (radian)
     t = np.arctan2(x-xc, y-yc)
     
-    # approximate with KNN
-    rt = np.stack([r.flatten(), t.flatten()], axis=-1)
-    intensity_model = neighbors.KNeighborsRegressor(metric=polar_dist,
-                                                    n_neighbors=params['n_neighbors'])
-    intensity_model.fit(rt, image_pad.flatten())
-    if label is not None:
-        label_model = neighbors.KNeighborsClassifier(metric=polar_dist, n_neighbors=1)
-        label_model.fit(rt, label_pad.flatten())
-
     # create (R, Theta) grid
     # note that angle 2*pi == 0, so endpoint=False for angle
-    if shape is None:
-        shape = image.shape
+    if out_shape is None:
+        out_shape = images[0].shape
+
     r_grid, t_grid = np.meshgrid(
-            np.linspace(start=0, stop=r.max(), num=shape[0]),
-            np.linspace(start=0, stop=2*np.pi, num=shape[1], endpoint=False),
+            np.linspace(start=0, stop=r.max(), num=out_shape[0]),
+            np.linspace(start=-np.pi, stop=np.pi, num=out_shape[1], endpoint=False),
             indexing='ij')
-    
-    # predict region and intensity
+
+    # approximate with KNN
+    rt = np.stack([r.flatten(), t.flatten()], axis=-1)
     rt_grid = np.stack([r_grid.flatten(), t_grid.flatten()], axis=-1)
-    image_rt = intensity_model.predict(rt_grid).reshape(shape)
+
     if label is not None:
-        label_rt = label_model.predict(rt_grid).reshape(shape)
+        label_model = neighbors.KNeighborsClassifier(metric=polar_dist,
+                n_neighbors=1)
+        label_model.fit(rt, label_pad.flatten())
+        label_rt = label_model.predict(rt_grid).reshape(out_shape)
+
+    image_rt_list = []
+    for image_pad in image_pad_list:
+        intensity_model = neighbors.KNeighborsRegressor(metric=polar_dist,
+            n_neighbors=params['n_neighbors'])
+        intensity_model.fit(rt, image_pad.flatten())
+        image_rt = intensity_model.predict(rt_grid).reshape(out_shape)
+        image_rt_list.append(image_rt)
+
+    # compile output dict
+    out_dict = {'x_in': x, 'y_in': y, 'r_in': r, 't_in': t, 'r_out': r_grid,
+            't_out': t_grid, 'image_rt_list': image_rt_list}
+    if label is not None:
+        out_dict['label_rt'] = label_rt
+   
+    return out_dict
     
-    if label is None:
-        return r_grid, t_grid, image_rt
-    else:
-        return r_grid, t_grid, image_rt, label_rt
-    
-def polarity(d: typing.Sequence[float]):
+def polarity(d: typing.Sequence[float]) -> float:
     '''
     Custom definition of polarity.
     
