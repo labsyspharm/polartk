@@ -121,6 +121,8 @@ if __name__ == '__main__':
     demo2_cc = np.corrcoef(demo2_gs_rt)
 
     # save to disk
+    np.save('demo1_gs_rt.npy', demo1_gs_rt)
+    np.save('demo2_gs_rt.npy', demo2_gs_rt)
     np.save('demo1_cc.npy', demo1_cc)
     np.save('demo2_cc.npy', demo2_cc)
 
