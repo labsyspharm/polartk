@@ -28,4 +28,4 @@ if __name__ == '__main__':
 
     plt.xlabel('radius from cell centroid (pixels)')
     plt.ylabel('cross-correlation')
-plt.show()
+    plt.show()
