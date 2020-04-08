@@ -58,7 +58,7 @@ if __name__ == '__main__':
         plt.plot(response, color=color, linestyle='solid')
     plt.xlabel('radius lag')
     plt.ylabel('correlation metric')
-#    plt.xticks([])
+    plt.xticks([])
     plt.yticks([])
     plt.gca().spines['right'].set_visible(False)
     plt.gca().spines['top'].set_visible(False)
