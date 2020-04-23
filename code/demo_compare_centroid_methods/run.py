@@ -75,4 +75,6 @@ if __name__ == '__main__':
     axes[1, 0].set_ylabel('image + segmentation outline')
 
     fig.tight_layout()
+    plt.savefig(os.path.expanduser('~/polartk/figures/'\
+            'demo_compare_centroid_methods.png'), dpi=600)
     plt.show()
