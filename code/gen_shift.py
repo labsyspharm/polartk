@@ -9,12 +9,18 @@ from pyprojroot import here
 src_filepath = here("./data/single_cell.tif")
 
 # transform cases
-translation = transform.AffineTransform(translation=(2, -3))
-rotation = transform.AffineTransform(rotation=np.radians(35))
+def move_translation(input):
+    tform = transform.AffineTransform(translation=(2, -3))
+    return transform.warp(input, tform, mode="constant", cval=0.0, clip=True,
+            preserve_range=True).astype(input.dtype)
+def move_rotation(input):
+    return transform.rotate(input, 35, mode="constant", cval=0.0,
+            clip=True, preserve_range=True).astype(input.dtype)
+
 case_dict = {
-    "translation": [translation],
-    "rotation": [rotation],
-    "translation_rotation": [translation, rotation],
+    "translation": [move_translation],
+    "rotation": [move_rotation],
+    "translation_rotation": [move_translation, move_rotation],
 }
 
 # go through cases
@@ -24,15 +30,8 @@ for case in case_dict:
     dst_img = src_img.copy()
     for ch in range(dst_img.shape[0]):
         tmp_img = dst_img[ch, ...].copy()
-        for trans in case_dict[case]:
-            tmp_img = transform.warp(
-                image=tmp_img,
-                inverse_map=trans.inverse,
-                mode="constant",
-                cval=0.0,
-                clip=True,
-                preserve_range=True,
-            ).astype(dst_img.dtype)
+        for trans_fn in case_dict[case]:
+            tmp_img = trans_fn(tmp_img)
         dst_img[ch, ...] = tmp_img
     # save to disk
     dst_filepath = here(f"./data/case_{case}.tif")
